@@ -18,6 +18,7 @@
     /* Green for self */
     --opponent-color: #f43f5e;
     /* Red/Pink for others */
+    --coin-gold: #fbbf24;
 }
 
 * {
@@ -102,6 +103,7 @@ body {
     margin-bottom: 0.5rem;
     background: linear-gradient(135deg, #fff, var(--accent-primary));
     -webkit-background-clip: text;
+    background-clip: text;
     -webkit-text-fill-color: transparent;
 }
 
@@ -141,6 +143,68 @@ input:focus {
     font-size: 0.9rem;
     color: var(--text-secondary);
     min-height: 1.2rem;
+}
+
+/* Betting UI */
+.wallet-info {
+    font-size: 1.1rem;
+    margin-bottom: 1.5rem;
+    padding: 0.5rem;
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 8px;
+    display: inline-block;
+}
+
+.coin-highlight {
+    color: var(--coin-gold);
+    font-weight: bold;
+    text-shadow: 0 0 10px rgba(251, 191, 36, 0.4);
+}
+
+.wager-input-row {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    justify-content: center;
+}
+
+.wager-input-row label {
+    font-weight: 600;
+}
+
+#wager-input {
+    width: 100px;
+    text-align: center;
+}
+
+.prize-pool-banner {
+    background: linear-gradient(90deg, transparent, rgba(251, 191, 36, 0.2), transparent);
+    color: var(--coin-gold);
+    text-align: center;
+    padding: 0.5rem;
+    font-size: 1.5rem;
+    font-weight: 700;
+    margin-bottom: -0.5rem;
+    z-index: 5;
+}
+
+.payout-box {
+    margin: 1rem 0;
+    padding: 1rem;
+    border-radius: 8px;
+    background: rgba(0, 0, 0, 0.5);
+    font-size: 1.2rem;
+    font-weight: 600;
+}
+
+.payout-win {
+    color: var(--player-color);
+    border: 1px solid var(--player-color);
+}
+
+.payout-loss {
+    color: var(--opponent-color);
+    border: 1px solid var(--opponent-color);
 }
 
 /* Buttons */

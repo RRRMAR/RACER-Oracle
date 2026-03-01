@@ -21,9 +21,15 @@ let playerId = Math.random().toString(36).substring(2, 9); // Unique ID for this
 let playerScore = 0;
 let isRacing = false;
 let startTime = 0;
-let connectedPlayers = {}; // { id: { name, score, lastSeen } }
+let connectedPlayers = {}; // { id: { name, score, wager, lastSeen } }
 let hallOfFame = []; // Array of records
 let lastPublishTime = 0;
+
+// Betting State
+let myCoins = 1000;
+let myWager = 0;
+let currentPrizePool = 0;
+let hasSettledBet = false;
 
 // --- DOM Elements ---
 const domLoginScreen = document.getElementById('login-screen');
@@ -40,10 +46,20 @@ const hofList = document.getElementById('hall-of-fame-list');
 
 const winnerOverlay = document.getElementById('winner-overlay');
 const winnerNameDisplay = document.getElementById('winner-name');
+const payoutResult = document.getElementById('payout-result');
 const btnRestart = document.getElementById('restart-btn');
+
+// Betting DOM
+const domLoginBalance = document.getElementById('login-balance');
+const domGameBalance = document.getElementById('game-balance');
+const inputWager = document.getElementById('wager-input');
+const domPrizePool = document.getElementById('prize-pool-amount');
 
 // --- Initialization ---
 function init() {
+    // Load Coins
+    loadCoins();
+
     // Attempt Mqtt Connection immediately
     statusMsg.innerText = "Connecting to MQTT Broker...";
 
@@ -143,6 +159,19 @@ function enterGame() {
     playerName = inputName.value.trim();
     if (!playerName) return;
 
+    // Process Wager
+    const wagerVal = parseInt(inputWager.value, 10);
+    if (isNaN(wagerVal) || wagerVal < 1) {
+        alert("Wager must be at least 1 coin.");
+        return;
+    }
+    if (wagerVal > myCoins) {
+        alert("You don't have enough Oracle Coins for that wager!");
+        return;
+    }
+    myWager = wagerVal;
+    hasSettledBet = false;
+
     domLoginScreen.classList.add('hidden');
     domGameScreen.classList.remove('hidden');
     domCurrentPlayer.innerText = playerName;
@@ -150,6 +179,9 @@ function enterGame() {
     isRacing = true;
     startTime = Date.now();
     playerScore = 0;
+
+    // Subtract wager from balance temporarily (held in escrow)
+    updateCoins(myCoins - myWager);
 
     // Broadcast my initial presence
     publishMyState();
@@ -177,8 +209,9 @@ function rushAction() {
     }
 
     // Update local UI immediately
-    connectedPlayers[playerId] = { name: playerName, score: playerScore, lastSeen: Date.now() };
+    connectedPlayers[playerId] = { name: playerName, score: playerScore, wager: myWager, lastSeen: Date.now() };
     updateTrackPositions();
+    updatePrizePoolUI();
 }
 
 function handlePlayerUpdate(id, data) {
@@ -187,16 +220,18 @@ function handlePlayerUpdate(id, data) {
     connectedPlayers[id] = {
         name: data.name,
         score: data.score,
+        wager: data.wager || 0,
         lastSeen: Date.now()
     };
 
     renderTracks(); // Will render if new, or just update positions
+    updatePrizePoolUI();
 }
 
 function handleGameStateUpdate(data) {
     if (data.type === "winner") {
         isRacing = false;
-        showWinner(data.name);
+        showWinner(data.name, data.pool);
     }
 }
 
@@ -205,7 +240,8 @@ function publishMyState() {
 
     const payload = JSON.stringify({
         name: playerName,
-        score: playerScore
+        score: playerScore,
+        wager: myWager
     });
 
     const message = new Paho.MQTT.Message(payload);
@@ -220,24 +256,42 @@ function declareWinner() {
     isRacing = false;
     const timeTaken = ((Date.now() - startTime) / 1000).toFixed(2);
 
-    // Publish Winner State
+    // Publish Winner State including final observed prize pool
     const winMsg = new Paho.MQTT.Message(JSON.stringify({
         type: "winner",
         name: playerName,
-        time: timeTaken
+        time: timeTaken,
+        pool: currentPrizePool
     }));
     winMsg.destinationName = TOPIC_GAME_STATE;
     mqttClient.send(winMsg);
 
     // Setup local winner screen
-    showWinner(playerName);
+    showWinner(playerName, currentPrizePool);
 
     // Update Hall of Fame (MQTT Retained)
     recordToHallOfFame(playerName, timeTaken);
 }
 
-function showWinner(name) {
-    winnerNameDisplay.innerText = name;
+function showWinner(winnerName, totalPool) {
+    winnerNameDisplay.innerText = winnerName;
+
+    // Handle Betting Payout
+    if (!hasSettledBet) {
+        hasSettledBet = true;
+        if (winnerName === playerName) {
+            // I won! Give me back my wager + the rest of the pool
+            const profit = totalPool - myWager;
+            updateCoins(myCoins + totalPool);
+            payoutResult.innerText = `JACKPOT! You won +${profit} 🟡`;
+            payoutResult.className = "payout-box payout-win";
+        } else {
+            // I lost. Wager is already deducted.
+            payoutResult.innerText = `YOU LOST! -${myWager} 🟡`;
+            payoutResult.className = "payout-box payout-loss";
+        }
+    }
+
     winnerOverlay.classList.remove('hidden');
 }
 
@@ -246,13 +300,18 @@ function resetGame() {
 
     // Reset state
     playerScore = 0;
-    isRacing = true;
-    startTime = Date.now();
 
-    connectedPlayers = {}; // Clear other players temporarily until they ping again
+    connectedPlayers = {}; // Clear remote players temporarily
 
-    renderTracks();
-    publishMyState();
+    // Return to login screen to re-wager
+    domGameScreen.classList.add('hidden');
+    domLoginScreen.classList.remove('hidden');
+
+    // Disconnect so we don't receive straggler updates
+    mqttClient.disconnect();
+    setTimeout(() => {
+        init(); // Reconnect for fresh state
+    }, 500);
 }
 
 // --- UI Rendering ---
@@ -312,6 +371,50 @@ function cleanupStalePlayers() {
             if (trackEl) trackEl.remove();
         }
     }
+    updatePrizePoolUI();
+}
+
+// --- Betting Logic ---
+function loadCoins() {
+    let savedCoins = localStorage.getItem('oracleRaceCoins');
+    if (!savedCoins) {
+        savedCoins = 1000;
+        localStorage.setItem('oracleRaceCoins', savedCoins);
+    }
+    myCoins = parseInt(savedCoins, 10);
+    updateCoinsUI();
+}
+
+function updateCoins(newAmount) {
+    myCoins = newAmount;
+    localStorage.setItem('oracleRaceCoins', myCoins);
+    updateCoinsUI();
+}
+
+function updateCoinsUI() {
+    const text = myCoins + " 🟡";
+    domLoginBalance.innerText = text;
+    domGameBalance.innerText = text;
+
+    // Auto clamp wager to available balance if needed
+    if (parseInt(inputWager.value, 10) > myCoins) {
+        inputWager.value = myCoins;
+        if (myCoins === 0) inputWager.value = 1; // Prevent 0 wager, but join will fail
+    }
+}
+
+function updatePrizePoolUI() {
+    currentPrizePool = 0;
+    const allIds = [playerId, ...Object.keys(connectedPlayers)];
+    allIds.forEach(id => {
+        if (id === playerId) {
+            currentPrizePool += parseInt(myWager, 10) || 0;
+        } else {
+            currentPrizePool += parseInt(connectedPlayers[id].wager, 10) || 0;
+        }
+    });
+
+    domPrizePool.innerText = currentPrizePool + " 🟡";
 }
 
 // --- Hall of Fame (Retained Messages) ---

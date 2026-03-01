@@ -26,8 +26,17 @@
             <h1 class="game-title">Oracle Race</h1>
             <p class="subtitle">Path of the Two Rivers</p>
 
+            <div class="wallet-info">
+                <span>Wallet Balance:</span>
+                <span id="login-balance" class="coin-highlight">1000 🟡</span>
+            </div>
+
             <div class="login-form">
                 <input type="text" id="player-name-input" placeholder="Enter your Oracle Name..." autocomplete="off">
+                <div class="wager-input-row">
+                    <label for="wager-input">Wager (🟡):</label>
+                    <input type="number" id="wager-input" value="10" min="1" max="1000">
+                </div>
                 <button id="join-btn" disabled>Connecting to Realm...</button>
             </div>
 
@@ -38,10 +47,15 @@
         <div id="game-screen" class="hidden">
             <header>
                 <h2>Oracle Race: <span id="room-name">Global Realm</span></h2>
-                <div class="player-info">
-                    Playing as: <span id="current-player" class="highlight"></span>
+                <div class="player-info" style="text-align: right;">
+                    Playing as: <span id="current-player" class="highlight"></span><br>
+                    Wallet: <span id="game-balance" class="coin-highlight">1000 🟡</span>
                 </div>
             </header>
+
+            <div class="prize-pool-banner">
+                🏆 Total Prize Pool: <span id="prize-pool-amount">-- 🟡</span>
+            </div>
 
             <div class="main-layout">
                 <div class="race-arena glass-panel">
@@ -72,6 +86,9 @@
                 <h2 class="winner-title">We have a Champion!</h2>
                 <div class="winner-name" id="winner-name">Oracle</div>
                 <p>has crossed the finish line.</p>
+                <div id="payout-result" class="payout-box">
+                    <!-- Payout result string -->
+                </div>
                 <button id="restart-btn" class="action-btn">Return to Lobby</button>
             </div>
         </div>
