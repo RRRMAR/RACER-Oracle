@@ -172,9 +172,68 @@ input:focus {
     font-weight: 600;
 }
 
-#wager-input {
-    width: 100px;
+/* Hide default spinners */
+input[type=number]::-webkit-inner-spin-button,
+input[type=number]::-webkit-outer-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+input[type=number] {
+    -moz-appearance: textfield;
+    appearance: textfield;
+}
+
+.custom-number-input {
+    display: flex;
+    align-items: center;
+    background: rgba(0, 0, 0, 0.4);
+    border: 1px solid var(--accent-secondary);
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 0 10px rgba(139, 92, 246, 0.2);
+}
+
+.custom-number-input input {
+    width: 60px;
+    border: none;
+    background: transparent;
     text-align: center;
+    font-size: 1.1rem;
+    padding: 0.5rem 0;
+    box-shadow: none;
+    border-radius: 0;
+}
+
+.custom-number-input input:focus {
+    box-shadow: none;
+}
+
+.wager-btn {
+    background: transparent;
+    color: var(--accent-primary);
+    border: none;
+    font-size: 1.5rem;
+    font-weight: bold;
+    padding: 0 1rem;
+    cursor: pointer;
+    transition: all 0.2s;
+    user-select: none;
+    border-radius: 0;
+    text-transform: none;
+}
+
+.wager-btn:hover:not(:disabled) {
+    background: rgba(139, 92, 246, 0.3);
+    transform: none;
+    /* Override default button hover */
+    box-shadow: none;
+    color: white;
+}
+
+.wager-btn:active:not(:disabled) {
+    background: rgba(139, 92, 246, 0.5);
+    transform: none;
 }
 
 .prize-pool-banner {

@@ -86,6 +86,12 @@ function init() {
         btnJoin.disabled = inputName.value.trim().length === 0 || !mqttClient.isConnected();
     });
 
+    const btnWagerMinus = document.getElementById('wager-minus');
+    const btnWagerPlus = document.getElementById('wager-plus');
+
+    btnWagerMinus.addEventListener('click', () => adjustWager(-10));
+    btnWagerPlus.addEventListener('click', () => adjustWager(10));
+
     btnJoin.addEventListener('click', enterGame);
     btnRush.addEventListener('click', rushAction);
     btnRestart.addEventListener('click', resetGame);
@@ -415,6 +421,19 @@ function updatePrizePoolUI() {
     });
 
     domPrizePool.innerText = currentPrizePool + " 🟡";
+}
+
+function adjustWager(amount) {
+    let currentVal = parseInt(inputWager.value, 10);
+    if (isNaN(currentVal)) currentVal = 10;
+
+    let newVal = currentVal + amount;
+
+    // Clamp between 1 and myCoins
+    if (newVal < 1) newVal = 1;
+    if (newVal > myCoins) newVal = myCoins;
+
+    inputWager.value = newVal;
 }
 
 // --- Hall of Fame (Retained Messages) ---

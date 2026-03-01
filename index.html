@@ -35,7 +35,11 @@
                 <input type="text" id="player-name-input" placeholder="Enter your Oracle Name..." autocomplete="off">
                 <div class="wager-input-row">
                     <label for="wager-input">Wager (🟡):</label>
-                    <input type="number" id="wager-input" value="10" min="1" max="1000">
+                    <div class="custom-number-input">
+                        <button type="button" id="wager-minus" class="wager-btn">-</button>
+                        <input type="number" id="wager-input" value="10" min="1" max="1000">
+                        <button type="button" id="wager-plus" class="wager-btn">+</button>
+                    </div>
                 </div>
                 <button id="join-btn" disabled>Connecting to Realm...</button>
             </div>
