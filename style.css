@@ -231,6 +231,7 @@ header {
     flex-direction: column;
     gap: 1rem;
     overflow-y: auto;
+    overflow-x: hidden;
     position: relative;
     padding-right: 40px;
     /* Space for finish line */
